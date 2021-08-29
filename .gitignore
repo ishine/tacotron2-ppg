@@ -1,0 +1,5 @@
+checkpoints/
+__pycache__
+Dockerfile
+.gitmodules
+tacotron2_statedict.pt
