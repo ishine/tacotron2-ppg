@@ -45,11 +45,9 @@ def prepare_dataloaders(hparams):
     ##trainset = TextMelLoader(hparams["training_files"], hparams)
     ##valset = TextMelLoader(hparams["validation_files"], hparams)
     ##collate_fn = TextMelCollate(hparams["n_frames_per_step"])
-    trainset = PPGMelLoader(hparams["training_file_list"], hparams)
-    valset = PPGMelLoader(hparams["validation_file_list"], hparams)
+    trainset = PPGMelLoader(hparams["ppg_dir"], hparams["mel_dir"], hparams["training_file_list"], hparams)
+    valset = PPGMelLoader(hparams["ppg_dir"], hparams["mel_dir"], hparams["validation_file_list"], hparams)
     collate_fn = PPGMelCollate(hparams["n_frames_per_step"])
-
-__init__(self, ppg_dir, mel_dir, filelist_path, hparams)
 
     if hparams["distributed_run"]:
         train_sampler = DistributedSampler(trainset)
@@ -62,6 +60,8 @@ __init__(self, ppg_dir, mel_dir, filelist_path, hparams)
                               sampler=train_sampler,
                               batch_size=hparams["batch_size"], pin_memory=False,
                               drop_last=True, collate_fn=collate_fn)
+    print("Training samples:", trainset.__len__())
+    print("Val samples:", valset.__len__())
     return train_loader, valset, collate_fn
 
 
@@ -84,6 +84,7 @@ def load_model(hparams):
     if hparams["distributed_run"]:
         model = apply_gradient_allreduce(model)
 
+    print(model)
     return model
 
 
@@ -99,6 +100,7 @@ def warm_start_model(checkpoint_path, model, ignore_layers):
         dummy_dict.update(model_dict)
         model_dict = dummy_dict
     model.load_state_dict(model_dict)
+    print(f"Checkpoint loaded from {checkpoint_path}")
     return model
 
 
@@ -209,6 +211,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     model.train()
     is_overflow = False
     # ================ MAIN TRAINNIG LOOP! ===================
+    
     for epoch in range(epoch_offset, hparams["epochs"]):
         print("Epoch: {}".format(epoch))
         for i, batch in enumerate(train_loader):
@@ -260,7 +263,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                                     checkpoint_path)
 
             iteration += 1
-
+    
 
 if __name__ == '__main__':
     hparams = create_hparams()

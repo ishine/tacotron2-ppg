@@ -1,3 +1,4 @@
+import os
 import random
 import numpy as np
 import torch
@@ -5,7 +6,7 @@ import torch.utils.data
 
 import layers
 from utils import load_wav_to_torch, load_filepaths_and_text
-from text import text_to_sequence
+#from text import text_to_sequence
 
 
 class PPGMelLoader(torch.utils.data.Dataset):
@@ -93,8 +94,10 @@ class PPGMelCollate():
         """
         # Right zero-pad all one-hot text sequences to max input length
         input_lengths, ids_sorted_decreasing = torch.sort(
-            torch.LongTensor([len(x[0]) for x in batch]),
+            torch.LongTensor([x[0].shape[1] for x in batch]),
             dim=0, descending=True)
+        print("input_lengths", input_lengths)
+        print("ids_sorted_decreasing", ids_sorted_decreasing)
         max_input_len = input_lengths[0]
 
         ##text_padded = torch.LongTensor(len(batch), max_input_len)
@@ -102,11 +105,18 @@ class PPGMelCollate():
         ##for i in range(len(ids_sorted_decreasing)):
         ##    text = batch[ids_sorted_decreasing[i]][0]
         ##    text_padded[i, :text.size(0)] = text
-        ppg_padded = torch.LongTensor(len(batch), max_input_length)
+        num_phons = batch[0][0].shape[0]
+        print(num_phons)
+        ppg_padded = torch.FloatTensor(len(batch), num_phons, max_input_len)
+        print("ppg_padded shape", ppg_padded.shape)
         ppg_padded.zero_()
         for i in range(len(ids_sorted_decreasing)):
             ppg = batch[ids_sorted_decreasing[i]][0]
-            ppg_padded[i, :text_size(0)] = text
+            print("ppg shape", ppg.shape)
+            _, b = ppg.shape
+            print(b)
+            print("target shape", ppg_padded[i, :, :b].shape)
+            ppg_padded[i, :, :b] = ppg
 
         # Right zero-pad mel-spec
         num_mels = batch[0][1].size(0)
@@ -123,6 +133,7 @@ class PPGMelCollate():
         output_lengths = torch.LongTensor(len(batch))
         for i in range(len(ids_sorted_decreasing)):
             mel = batch[ids_sorted_decreasing[i]][1]
+            print("mel shape", mel.shape)
             mel_padded[i, :, :mel.size(1)] = mel
             gate_padded[i, mel.size(1)-1:] = 1
             output_lengths[i] = mel.size(1)

@@ -20,9 +20,9 @@ def create_hparams(hparams_string=None, verbose=False):
         "dist_url": "tcp://localhost:54321",
         "cudnn_enabled": True,
         "cudnn_benchmark": False,
-        "warm_start": False,
-        "checkpoint_path": None,
-        "ignore_layers": [], #['embedding.weight'],
+        "warm_start": True,
+        "checkpoint_path": "tacotron2_statedict.pt",
+        "ignore_layers": ['embedding.weight'],
         "n_gpus": 1,
         "rank": 0,
         "group_name": "isaacs_group",
@@ -31,18 +31,18 @@ def create_hparams(hparams_string=None, verbose=False):
         # Data Parameters             #
         ################################
         ##"load_mel_from_disk": False,
-        "output_dir": "checkpoints_sanderson",
+        "output_directory": "checkpoints_sanderson",
         "ppg_dir": "../sanderson_ppg",
         "mel_dir": "../sanderson_melspec",
         "training_file_list": "filelists/sanderson_train_files.txt",
-        "validation_file_list": "filelists/sanderson_train_files.txt",
+        "validation_file_list": "filelists/sanderson_val_files.txt",
         "log_directory": "log_sanderson",
 
-        #"output_dir": "checkpoints_sanderson",
+        #"output_directory": "checkpoints_sanderson",
         #"ppg_dir": "../antonimuthu_ppg",
         #"mel_dir": "../sanderson_melspec",
         #"training_file_list": "filelists/antonimuthu_train_files.txt",
-        #"validation_file_list": "filelists/antonimuthu_train_files.txt",
+        #"validation_file_list": "filelists/antonimuthu_val_files.txt",
         #"log_directory": "log_antonimuthu",
         
         ##"text_cleaners": ['english_cleaners'],
@@ -64,7 +64,7 @@ def create_hparams(hparams_string=None, verbose=False):
         # Model Parameters             #
         ################################
         #"n_symbols": len(symbols),
-        "symbols_embedding_dim": 512,
+        "ppg_embedding_dim": 512,
         "ppg_n_phonemes": 40,
 
         # Encoder parameters
@@ -101,7 +101,7 @@ def create_hparams(hparams_string=None, verbose=False):
         "learning_rate": 1e-3,
         "weight_decay": 1e-6,
         "grad_clip_thresh": 1.0,
-        "batch_size": 64,
+        "batch_size": 16,
         "mask_padding": True  # set model's padded outputs to padded values
     #)
     }
