@@ -96,10 +96,11 @@ class PPGMelCollate():
         for i in range(len(ids_sorted_decreasing)):
             ppg = batch[ids_sorted_decreasing[i]][0]
             #print("ppg shape", ppg.shape)
-            length, _ = ppg.shape
+            length = ppg.shape[0]
             #print(length)
             #print("target shape", ppg_padded[i, :length, :].shape)
             ppg_padded[i, :length, :] = ppg
+            del ppg, length
 
         # Right zero-pad mel-spec
         num_mels = batch[0][1].size(0)
@@ -120,6 +121,7 @@ class PPGMelCollate():
             mel_padded[i, :, :mel.size(1)] = mel
             gate_padded[i, mel.size(1)-1:] = 1
             output_lengths[i] = mel.size(1)
+            del mel
 
         return ppg_padded, input_lengths, mel_padded, gate_padded, \
             output_lengths
