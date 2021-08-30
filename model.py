@@ -475,7 +475,7 @@ class Tacotron2(nn.Module):
     def parse_batch(self, batch):
         text_padded, input_lengths, mel_padded, gate_padded, \
             output_lengths = batch
-        text_padded = to_gpu(text_padded).long()
+        text_padded = to_gpu(text_padded).float()
         input_lengths = to_gpu(input_lengths).long()
         max_len = torch.max(input_lengths.data).item()
         mel_padded = to_gpu(mel_padded).float()
@@ -501,9 +501,15 @@ class Tacotron2(nn.Module):
     def forward(self, inputs):
         text_inputs, text_lengths, mels, max_len, output_lengths = inputs
         text_lengths, output_lengths = text_lengths.data, output_lengths.data
-
+        
+        #print(text_inputs.shape)
+        #print(type(text_inputs))
+        #print(text_inputs.dtype)
+        t = self.embedding(text_inputs)
+        #print(t.shape)
+        #print(type(t))
         embedded_inputs = self.embedding(text_inputs).transpose(1, 2)
-
+        
         encoder_outputs = self.encoder(embedded_inputs, text_lengths)
 
         mel_outputs, gate_outputs, alignments = self.decoder(

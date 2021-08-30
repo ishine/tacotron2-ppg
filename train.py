@@ -45,8 +45,8 @@ def prepare_dataloaders(hparams):
     ##trainset = TextMelLoader(hparams["training_files"], hparams)
     ##valset = TextMelLoader(hparams["validation_files"], hparams)
     ##collate_fn = TextMelCollate(hparams["n_frames_per_step"])
-    trainset = PPGMelLoader(hparams["ppg_dir"], hparams["mel_dir"], hparams["training_file_list"], hparams)
-    valset = PPGMelLoader(hparams["ppg_dir"], hparams["mel_dir"], hparams["validation_file_list"], hparams)
+    trainset = PPGMelLoader(hparams, "train")
+    valset = PPGMelLoader(hparams, "val")
     collate_fn = PPGMelCollate(hparams["n_frames_per_step"])
 
     if hparams["distributed_run"]:
@@ -84,7 +84,7 @@ def load_model(hparams):
     if hparams["distributed_run"]:
         model = apply_gradient_allreduce(model)
 
-    print(model)
+    #print(model)
     return model
 
 

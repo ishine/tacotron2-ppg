@@ -27,10 +27,14 @@ class PPGMelLoader(torch.utils.data.Dataset):
     #        hparams.mel_fmax)
     #    random.seed(hparams.seed)
     #    random.shuffle(self.audiopaths_and_text)
-    def __init__(self, ppg_dir, mel_dir, filelist_path, hparams):
-        self.ppg_dir = ppg_dir
-        self.mel_dir = mel_dir
-        with open(filelist_path, "r") as f:
+    def __init__(self, hparams, split):
+        self.ppg_dir = hparams["ppg_dir"]
+        self.mel_dir = hparams["mel_dir"]
+        if split == "train":
+            self.filelist_path = hparams["training_file_list"]
+        elif split == "val":
+            self.filelist_path = hparams["validation_file_list"]
+        with open(self.filelist_path, "r") as f:
             self.file_names = f.read().strip().split("\n")
         random.seed(hparams["seed"])
         random.shuffle(self.file_names)
@@ -43,39 +47,13 @@ class PPGMelLoader(torch.utils.data.Dataset):
     #    return (text, mel)
     def get_ppg_mel_pair(self, index):
         file_name = self.file_names[index]
-        ppg = torch.load(os.path.join(self.ppg_dir, file_name))
+        ppg = torch.transpose(torch.load(os.path.join(self.ppg_dir, file_name)), 0, 1)
         mel = torch.load(os.path.join(self.mel_dir, file_name))
         return (ppg, mel)
 
-    #def get_mel(self, filename):
-    #    if not self.load_mel_from_disk:
-    #        audio, sampling_rate = load_wav_to_torch(filename)
-    #        if sampling_rate != self.stft.sampling_rate:
-    #            raise ValueError("{} {} SR doesn't match target {} SR".format(
-    #                sampling_rate, self.stft.sampling_rate))
-    #        audio_norm = audio / self.max_wav_value
-    #        audio_norm = audio_norm.unsqueeze(0)
-    #        audio_norm = torch.autograd.Variable(audio_norm, requires_grad=False)
-    #        melspec = self.stft.mel_spectrogram(audio_norm)
-    #        melspec = torch.squeeze(melspec, 0)
-    #    else:
-    #        melspec = torch.from_numpy(np.load(filename))
-    #        assert melspec.size(0) == self.stft.n_mel_channels, (
-    #            'Mel dimension mismatch: given {}, expected {}'.format(
-    #                melspec.size(0), self.stft.n_mel_channels))
-    #    return melspec
-    
-    #def get_text(self, text):
-    #    text_norm = torch.IntTensor(text_to_sequence(text, self.text_cleaners))
-    #    return text_norm
-
-    #def __getitem__(self, index):
-    #    return self.get_mel_text_pair(self.audiopaths_and_text[index])
     def __getitem__(self, index):
         return self.get_ppg_mel_pair(index)
 
-    #def __len__(self):
-    #    return len(self.audiopaths_and_text)
     def __len__(self):
         return len(self.file_names)
 
@@ -94,29 +72,34 @@ class PPGMelCollate():
         """
         # Right zero-pad all one-hot text sequences to max input length
         input_lengths, ids_sorted_decreasing = torch.sort(
-            torch.LongTensor([x[0].shape[1] for x in batch]),
+            torch.LongTensor([x[0].shape[0] for x in batch]),
             dim=0, descending=True)
-        print("input_lengths", input_lengths)
-        print("ids_sorted_decreasing", ids_sorted_decreasing)
+        #print("input_lengths", input_lengths)
+        #print("ids_sorted_decreasing", ids_sorted_decreasing)
         max_input_len = input_lengths[0]
+        #print("max_input_len:", max_input_len)
 
         ##text_padded = torch.LongTensor(len(batch), max_input_len)
         ##text_padded.zero_()
         ##for i in range(len(ids_sorted_decreasing)):
         ##    text = batch[ids_sorted_decreasing[i]][0]
         ##    text_padded[i, :text.size(0)] = text
-        num_phons = batch[0][0].shape[0]
-        print(num_phons)
-        ppg_padded = torch.FloatTensor(len(batch), num_phons, max_input_len)
-        print("ppg_padded shape", ppg_padded.shape)
+        #print("batch type:", type(batch))
+        #print("batch[0] type:", type(batch[0]))
+        #print("batch[0][0] type:", type(batch[0][0]))
+        #print("batch[0][0][0] type:", type(batch[0][0][0]))
+        num_phons = batch[0][0].shape[1]
+        #print("Number of phonemes:", num_phons)
+        ppg_padded = torch.FloatTensor(len(batch), max_input_len, num_phons)
+        #print("ppg_padded shape", ppg_padded.shape)
         ppg_padded.zero_()
         for i in range(len(ids_sorted_decreasing)):
             ppg = batch[ids_sorted_decreasing[i]][0]
-            print("ppg shape", ppg.shape)
-            _, b = ppg.shape
-            print(b)
-            print("target shape", ppg_padded[i, :, :b].shape)
-            ppg_padded[i, :, :b] = ppg
+            #print("ppg shape", ppg.shape)
+            length, _ = ppg.shape
+            #print(length)
+            #print("target shape", ppg_padded[i, :length, :].shape)
+            ppg_padded[i, :length, :] = ppg
 
         # Right zero-pad mel-spec
         num_mels = batch[0][1].size(0)
@@ -133,7 +116,7 @@ class PPGMelCollate():
         output_lengths = torch.LongTensor(len(batch))
         for i in range(len(ids_sorted_decreasing)):
             mel = batch[ids_sorted_decreasing[i]][1]
-            print("mel shape", mel.shape)
+            #print("mel shape", mel.shape)
             mel_padded[i, :, :mel.size(1)] = mel
             gate_padded[i, mel.size(1)-1:] = 1
             output_lengths[i] = mel.size(1)
