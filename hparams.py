@@ -11,18 +11,18 @@ def create_hparams(hparams_string=None, verbose=False):
         # Experiment Parameters        #
         ################################
         "epochs": 500,
-        "iters_per_checkpoint": 1000,
-        "seed": 123,
-        "dynamic_loss_scaling": True,
+        "iters_per_checkpoint": 200,
+        "seed": 1234,
+        #"dynamic_loss_scaling": True,
         "fp16_run": False,
         "distributed_run": False,
-        "dist_backend": "nccl",
-        "dist_url": "tcp://localhost:54321",
+        #"dist_backend": "nccl",
+        #"dist_url": "tcp://localhost:54321",
         "cudnn_enabled": True,
         "cudnn_benchmark": False,
-        "warm_start": True,
-        "checkpoint_path": "tacotron2_statedict.pt",
-        "ignore_layers": ['embedding.weight'],
+        #"warm_start": True,
+        "checkpoint_path": None, #"tacotron2_statedict.pt",
+        "ignore_layers": [], #['embedding.weight'],
         "n_gpus": 1,
         "rank": 0,
         "group_name": "isaacs_group",
@@ -36,14 +36,14 @@ def create_hparams(hparams_string=None, verbose=False):
         "mel_dir": "../sanderson_melspec",
         "training_file_list": "filelists/sanderson_train_files.txt",
         "validation_file_list": "filelists/sanderson_val_files.txt",
-        "log_directory": "log_sanderson",
+        "log_directory": "log",
 
         #"output_directory": "checkpoints_sanderson",
         #"ppg_dir": "../antonimuthu_ppg",
         #"mel_dir": "../sanderson_melspec",
         #"training_file_list": "filelists/antonimuthu_train_files.txt",
         #"validation_file_list": "filelists/antonimuthu_val_files.txt",
-        #"log_directory": "log_antonimuthu",
+        #"log_directory": "log",
         
         ##"text_cleaners": ['english_cleaners'],
 
@@ -51,22 +51,22 @@ def create_hparams(hparams_string=None, verbose=False):
         ################################
         # Audio Parameters             #
         ################################
-        "max_wav_value": 32768.0,
-        "sampling_rate": 22050,
-        "filter_length": 1024,
-        "hop_length": 256,
-        "win_length": 1024,
-        "n_mel_channels": 80,
-        "mel_fmin": 0.0,
-        "mel_fmax": 8000.0,
+        #"max_wav_value": 32768.0,
+        #"sampling_rate": 22050,
+        #"filter_length": 1024,
+        #"hop_length": 256,
+        #"win_length": 1024,
+        #"n_mel_channels": 80,
+        #"mel_fmin": 0.0,
+        #"mel_fmax": 8000.0,
 
         ################################
         # Model Parameters             #
         ################################
         #"n_symbols": len(symbols),
-        "ppg_embedding_dim": 512,
         "ppg_n_phonemes": 40,
-
+        "ppg_embedding_dim": 512,
+        
         # Encoder parameters
         "encoder_kernel_size": 5,
         "encoder_n_convolutions": 3,
@@ -74,7 +74,7 @@ def create_hparams(hparams_string=None, verbose=False):
 
         # Decoder parameters
         "n_frames_per_step": 1,  # currently only 1 is supported
-        "decoder_rnn_dim": 1024,
+        "decoder_rnn_dim": 400,
         "prenet_dim": 256,
         "max_decoder_steps": 1400,
         "gate_threshold": 0.5,
@@ -82,8 +82,9 @@ def create_hparams(hparams_string=None, verbose=False):
         "p_decoder_dropout": 0.1,
 
         # Attention parameters
-        "attention_rnn_dim": 1024,
+        "attention_rnn_dim": 400,
         "attention_dim": 128,
+        "attention_window_size": 20,
 
         # Location Layer parameters
         "attention_location_n_filters": 32,
@@ -93,6 +94,10 @@ def create_hparams(hparams_string=None, verbose=False):
         "postnet_embedding_dim": 512,
         "postnet_kernel_size": 5,
         "postnet_n_convolutions": 5,
+        
+        # Loss function parameters
+        "mel_weight": , 1.0
+        "gate_weight": 0.005,
 
         ################################
         # Optimization Hyperparameters #

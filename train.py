@@ -154,7 +154,7 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
         logger.log_validation(val_loss, model, y, y_pred, iteration)
 
 
-def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
+def train(output_directory, log_directory, checkpoint_path, n_gpus,
           rank, group_name, hparams):
     """Training and validation logging results to tensorboard and stdout
 
@@ -167,8 +167,8 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     rank (int): rank of current gpu
     hparams (object): comma separated list of "name=value" pairs.
     """
-    if hparams["distributed_run"]:
-        init_distributed(hparams, n_gpus, rank, group_name)
+    #if hparams["distributed_run"]:
+    #    init_distributed(hparams, n_gpus, rank, group_name)
 
     torch.manual_seed(hparams["seed"])
     torch.cuda.manual_seed(hparams["seed"])
@@ -178,15 +178,16 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,
                                  weight_decay=hparams["weight_decay"])
 
-    if hparams["fp16_run"]:
-        from apex import amp
-        model, optimizer = amp.initialize(
-            model, optimizer, opt_level='O2')
+    #if hparams["fp16_run"]:
+    #    from apex import amp
+    #    model, optimizer = amp.initialize(
+    #        model, optimizer, opt_level='O2')
 
-    if hparams["distributed_run"]:
-        model = apply_gradient_allreduce(model)
+    #if hparams["distributed_run"]:
+    #    model = apply_gradient_allreduce(model)
 
-    criterion = Tacotron2Loss()
+    criterion = Tacotron2Loss(mel_weight=hparams["mel_weight"], 
+                              gate_weight=["gate_weight"])
 
     logger = prepare_directories_and_logger(
         output_directory, log_directory, rank)
@@ -251,7 +252,7 @@ def train(output_directory, log_directory, checkpoint_path, warm_start, n_gpus,
                 logger.log_training(
                     reduced_loss, grad_norm, learning_rate, duration, iteration)
 
-            make_checkpoint = (iteration % hparams["iters_per_checkpoint"] == 0) or (iteration in {100, 200, 300, 400, 500})
+            make_checkpoint = (iteration % hparams["iters_per_checkpoint"] == 0) or (iteration in {50, 100})
             if not is_overflow and make_checkpoint:
                 validate(model, criterion, valset, iteration,
                          hparams["batch_size"], n_gpus, collate_fn, logger,
@@ -271,11 +272,17 @@ if __name__ == '__main__':
     torch.backends.cudnn.enabled = hparams["cudnn_enabled"]
     torch.backends.cudnn.benchmark = hparams["cudnn_benchmark"]
 
-    print("FP16 Run:", hparams["fp16_run"])
-    print("Dynamic Loss Scaling:", hparams["dynamic_loss_scaling"])
-    print("Distributed Run:", hparams["distributed_run"])
+    #print("FP16 Run:", hparams["fp16_run"])
+    #print("Dynamic Loss Scaling:", hparams["dynamic_loss_scaling"])
+    #print("Distributed Run:", hparams["distributed_run"])
     print("cuDNN Enabled:", hparams["cudnn_enabled"])
-    print("cuDNN Benchmark:", hparams["cudnn_benchmark"])
+    #print("cuDNN Benchmark:", hparams["cudnn_benchmark"])
 
-    train(hparams["output_directory"], hparams["log_directory"], hparams["checkpoint_path"],
-          hparams["warm_start"], hparams["n_gpus"], hparams["rank"], hparams["group_name"], hparams)
+    train(hparams["output_directory"], 
+          hparams["log_directory"], 
+          hparams["checkpoint_path"],
+          hparams["warm_start"], 
+          hparams["n_gpus"], 
+          hparams["rank"], 
+          hparams["group_name"], 
+          hparams)
