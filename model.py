@@ -61,6 +61,7 @@ class Attention(nn.Module):
             processed_query + processed_attention_weights + processed_memory))
 
         energies = energies.squeeze(-1)
+        del processed_query, processed_attention_weights, processed_memory, attention_weights_cat
         return energies
 
     def forward(self, attention_hidden_state, memory, processed_memory,
@@ -83,6 +84,9 @@ class Attention(nn.Module):
         attention_weights = F.softmax(alignment, dim=1)
         attention_context = torch.bmm(attention_weights.unsqueeze(1), memory)
         attention_context = attention_context.squeeze(1)
+
+        del alignment, attention_hidden_state, memory
+        del processed_memory, attention_weights_cat, mask
 
         return attention_context, attention_weights
 
@@ -270,20 +274,27 @@ class Decoder(nn.Module):
         MAX_TIME = memory.size(1)
 
         self.attention_hidden = Variable(memory.data.new(
+        #self.attention_hidden = torch.Tensor(memory.data.new(
             B, self.attention_rnn_dim).zero_())
         self.attention_cell = Variable(memory.data.new(
+        #self.attention_cell = torch.Tensor(memory.data.new(
             B, self.attention_rnn_dim).zero_())
 
         self.decoder_hidden = Variable(memory.data.new(
+        #self.decoder_hidden = torch.Tensor(memory.data.new(
             B, self.decoder_rnn_dim).zero_())
         self.decoder_cell = Variable(memory.data.new(
+        #self.decoder_cell = torch.Tensor(memory.data.new(
             B, self.decoder_rnn_dim).zero_())
 
         self.attention_weights = Variable(memory.data.new(
+        #self.attention_weights = torch.Tensor(memory.data.new(
             B, MAX_TIME).zero_())
         self.attention_weights_cum = Variable(memory.data.new(
+        #self.attention_weights_cum = torch.Tensor(memory.data.new(
             B, MAX_TIME).zero_())
         self.attention_context = Variable(memory.data.new(
+        #self.attention_context = torch.Tensor(memory.data.new(
             B, self.encoder_embedding_dim).zero_())
 
         self.memory = memory
@@ -541,10 +552,10 @@ class Tacotron2(nn.Module):
         return outputs
 
     def forward(self, inputs):
-        ppg_inputs, ppg_lengths, mels, max_len, output_lengths = self.parse_input(inputs)
+        ppg_inputs, ppg_lengths, mels, max_len, output_lengths = inputs
         ppg_lengths, output_lengths = ppg_lengths.data, output_lengths.data
         
-        embedded_inputs = self.embedding(inputs).transpose(1, 2)
+        embedded_inputs = self.embedding(ppg_inputs).transpose(1, 2)
         
         encoder_outputs = self.encoder(embedded_inputs, ppg_lengths)
 
@@ -553,15 +564,17 @@ class Tacotron2(nn.Module):
 
         mel_outputs_postnet = self.postnet(mel_outputs)
         mel_outputs_postnet = mel_outputs + mel_outputs_postnet
+        
+        del embedded_inputs, encoder_outputs, ppg_inputs, mels
 
         return self.parse_output(
             [mel_outputs, mel_outputs_postnet, gate_outputs, alignments],
             output_lengths)
 
-    def inference(self, inputs):
+    def inference(self, ppg_inputs):
         #inputs = self.parse(inputs)
-        input_lengths = torch.cuda.LongTensor([t.shape[1] for t in inputs])
-        embedded_inputs = self.embedding(inputs).transpose(1, 2)
+        input_lengths = torch.cuda.LongTensor([t.shape[1] for t in ppg_inputs])
+        embedded_inputs = self.embedding(ppg_inputs).transpose(1, 2)
         encoder_outputs = self.encoder.inference(embedded_inputs)
         
         mel_outputs, gate_outputs, alignments = self.decoder.inference(
@@ -572,5 +585,7 @@ class Tacotron2(nn.Module):
 
         outputs = self.parse_output(
             [mel_outputs, mel_outputs_postnet, gate_outputs, alignments])
+
+        del mel_outputs, mel_outputs_postnet, gate_outputs, alignments, input_lengths, embedded_inputs, encoder_outputs
 
         return outputs

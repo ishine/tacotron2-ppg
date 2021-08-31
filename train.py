@@ -154,8 +154,13 @@ def validate(model, criterion, valset, iteration, batch_size, n_gpus,
         logger.log_validation(val_loss, model, y, y_pred, iteration)
 
 
-def train(output_directory, log_directory, checkpoint_path, n_gpus,
-          rank, group_name, hparams):
+def train(output_directory, 
+          log_directory, 
+          checkpoint_path, 
+          warm_start, 
+          n_gpus,
+          rank, 
+          hparams):
     """Training and validation logging results to tensorboard and stdout
 
     Params
@@ -187,7 +192,7 @@ def train(output_directory, log_directory, checkpoint_path, n_gpus,
     #    model = apply_gradient_allreduce(model)
 
     criterion = Tacotron2Loss(mel_weight=hparams["mel_weight"], 
-                              gate_weight=["gate_weight"])
+                              gate_weight=hparams["gate_weight"])
 
     logger = prepare_directories_and_logger(
         output_directory, log_directory, rank)
@@ -211,11 +216,13 @@ def train(output_directory, log_directory, checkpoint_path, n_gpus,
 
     model.train()
     is_overflow = False
-    # ================ MAIN TRAINNIG LOOP! ===================
+    # ================ MAIN TRAINING LOOP! ===================
     
     for epoch in range(epoch_offset, hparams["epochs"]):
         print("Epoch: {}".format(epoch))
         for i, batch in enumerate(train_loader):
+            #if i % 10 == 5:
+            #    torch.cuda.empty_cache()
             start = time.perf_counter()
             for param_group in optimizer.param_groups:
                 param_group['lr'] = learning_rate
@@ -284,5 +291,4 @@ if __name__ == '__main__':
           hparams["warm_start"], 
           hparams["n_gpus"], 
           hparams["rank"], 
-          hparams["group_name"], 
           hparams)
